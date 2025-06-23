@@ -1,4 +1,3 @@
-
 #include "power_save.h"
 
 void enableGPSPowerSaveMode(SoftwareSerial gpsSerial)
