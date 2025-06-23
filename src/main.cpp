@@ -52,6 +52,7 @@ void getGPSdata()
 {
   static unsigned int cur_pointer = 0;
   char data;
+  //blah
 
   receivedGPSdata = false;
 
