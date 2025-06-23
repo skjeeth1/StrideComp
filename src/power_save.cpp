@@ -14,17 +14,17 @@ void enableGPSPowerSaveMode(SoftwareSerial gpsSerial)
 
 void wakeISR()
 {
-    smsWake = true; // Set flag to indicate wake from RI
+    smsInterrupt = true; // Set flag to indicate wake from RI
 }
 
-void simSleepInit()
+void simInitWithSleep()
 {
     pinMode(2, INPUT_PULLUP); // RI connected here
     attachInterrupt(digitalPinToInterrupt(2), wakeISR, FALLING);
 
     pinMode(SIM_DTR, OUTPUT);
     digitalWrite(SIM_DTR, LOW); // Allow sleep
-    Serial.begin(9600);
+
     Serial.println("AT+CSCLK=1");
 }
 
@@ -39,13 +39,10 @@ void sleepSIM800()
     digitalWrite(SIM_DTR, LOW);
 }
 
-void readAllUnreadSMSInit()
+void nanoSleep()
 {
-    // Call wakeSIM800() before this
-    Serial.println("AT+CMGF=1");
-    delay(500);
-    Serial.println("AT+CMGL=\"REC UNREAD\"");
-    delay(2000);
-
-    // Read messages after calling this function
+    for (int i = 0; i < 2; i++)
+    {
+        LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+    }
 }
