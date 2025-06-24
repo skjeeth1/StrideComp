@@ -2,14 +2,14 @@
 #include <SoftwareSerial.h>
 
 TinyGPSPlus gps;
-SoftwareSerial gpsSerial(4, 3); // GPS TX → Arduino D4 (RX), GPS RX → Arduino D3 (TX)
+SoftwareSerial gpsSerial(4, 3); // GPS TX - D4 (RX), GPS RX - D3 (TX)
 
 // Flag variable
 bool validDataReceived = false;
 unsigned long lastValidData = 0;
 const unsigned long GPS_TIMEOUT = 10000;
 
-// Geofencing parameters (predefined - modify as needed)
+// Geofencing parameters 
 const double ORIGIN_LAT = 8.5241;     // Thiruvananthapuram latitude
 const double ORIGIN_LNG = 76.9366;    // Thiruvananthapuram longitude  
 const double RADIUS_METERS = 1000.0;  // 1km radius
@@ -31,22 +31,18 @@ void setup() {
 }
 
 double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-  // Haversine formula for calculating distance between two GPS coordinates
-  const double R = 6371000; // Earth's radius in meters
-  
-  double lat1Rad = lat1 * PI / 180.0;
-  double lat2Rad = lat2 * PI / 180.0;
-  double deltaLat = (lat2 - lat1) * PI / 180.0;
-  double deltaLon = (lon2 - lon1) * PI / 180.0;
-  
-  double a = sin(deltaLat / 2) * sin(deltaLat / 2) +
-             cos(lat1Rad) * cos(lat2Rad) *
-             sin(deltaLon / 2) * sin(deltaLon / 2);
-  
-  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-  
-  return R * c; // Distance in meters
+  // Approx 1 degree latitude ~ 111,320 meters
+  // Approx 1 degree longitude ~ 111,320 * cos(latitude)
+  const double LAT_TO_M = 111320.0;
+
+  // Convert differences to meters
+  double deltaLat = (lat2 - lat1) * LAT_TO_M;
+  double avgLatRad = ((lat1 + lat2) / 2.0) * PI / 180.0;
+  double deltaLon = (lon2 - lon1) * LAT_TO_M * cos(avgLatRad);
+
+  return sqrt(deltaLat * deltaLat + deltaLon * deltaLon);
 }
+
 
 String generateGoogleMapsLink(double lat, double lng) {
   String link = "https://maps.google.com/maps?q=";
@@ -79,7 +75,6 @@ void loop() {
   
   while (gpsSerial.available()) {
     if (gps.encode(gpsSerial.read())) {
-      // Data was successfully parsed, now validate it
       if (gps.location.isValid() && gps.date.isValid() && gps.time.isValid()) {
         validDataReceived = true;
         lastValidData = millis();
@@ -121,6 +116,14 @@ void loop() {
       }
     }
   }
+  // Handle invalid data flag
+  if (!validDataReceived) {
+    // Check if we haven't received valid data for too long
+    if (millis() - lastValidData > GPS_TIMEOUT && lastValidData != 0) {
+      Serial.println("WARNING: No valid GPS data for extended period!");
+    }
   
   delay(2000); // 2 second delay between readings
 }
+#include "sendsms.h"
+sendSMS(generateGoogleMapsLink(currentLat, currentLng));
