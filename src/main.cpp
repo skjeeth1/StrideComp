@@ -93,37 +93,11 @@ void loop() {
         Serial.print("Longitude: ");
         Serial.println(currentLng, 6);
         
-        if (gps.altitude.isValid()) {
-          Serial.print("Altitude: ");
-          Serial.print(gps.altitude.meters());
-          Serial.println(" m");
-        }
         
-        if (gps.speed.isValid()) {
-          Serial.print("Speed: ");
-          Serial.print(gps.speed.kmph());
-          Serial.println(" km/h");
-        }
-        
-        if (gps.satellites.isValid()) {
-          Serial.print("Satellites: ");
-          Serial.println(gps.satellites.value());
-        }
-        
-        if (gps.hdop.isValid()) {
-          Serial.print("HDOP: ");
-          Serial.println(gps.hdop.hdop());
-        }
         
         // Date and Time
-        if (gps.date.isValid() && gps.time.isValid()) {
-          Serial.print("Date/Time: ");
-          Serial.print(gps.date.day());
-          Serial.print("/");
-          Serial.print(gps.date.month());
-          Serial.print("/");
-          Serial.print(gps.date.year());
-          Serial.print(" ");
+        if ( gps.time.isValid()) {
+          Serial.print("Time: ");
           Serial.print(gps.time.hour());
           Serial.print(":");
           Serial.print(gps.time.minute());
@@ -145,19 +119,6 @@ void loop() {
         validDataReceived = false;
         Serial.println("GPS data received but invalid/incomplete");
       }
-    }
-  }
-  
-  // Handle invalid data flag
-  if (!validDataReceived) {
-    // Check if we haven't received valid data for too long
-    if (millis() - lastValidData > GPS_TIMEOUT && lastValidData != 0) {
-      Serial.println("WARNING: No valid GPS data for extended period!");
-    }
-    
-    // Check if we're getting any data at all
-    if (millis() > 5000 && gps.charsProcessed() < 10) {
-      Serial.println("ERROR: No GPS data received - check wiring and power");
     }
   }
   
