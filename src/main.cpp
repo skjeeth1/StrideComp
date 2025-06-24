@@ -9,6 +9,17 @@ SoftwareSerial gpsSerial(rxPin, txPin);
 void handlemessages();
 void doGPSstuff();
 
+int bound_radius = 0;
+
+typedef struct
+{
+  int32_t lat;
+  int32_t lon;
+} GPSlocation;
+
+GPSlocation origin_location = {0, 0};
+GPSlocation current_location = {0, 0};
+
 volatile bool smsInterrupt = false;
 
 void setup()

@@ -26,6 +26,7 @@ void sleepSIM800();
 // Read new SIMs
 void readAllUnreadSMSInit();
 
+// Make the arduino nano goto sleep
 void nanoSleep();
 
 #endif
