@@ -6,7 +6,7 @@ struct Vec {
 struct Vec current_location = {0, 0};
 struct Vec origin_location = {0, 0};
 int bound_radius = 10 ;
-
+String authorizedNumber = "+919876543210";
 
 void toUpperCase(char *str) {
     while (*str) {
