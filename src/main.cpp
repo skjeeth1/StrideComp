@@ -1,39 +1,42 @@
-#include "Arduino.h"
-#include "power_save.h"
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+#include "gps_parser.h"
 
-#define GPSrxPin 4
-#define GPStxPin 3
+#include "globals.h"
+#include "parse.h"
+#include "sendsms.h"
+#include "sms.h"
 
-#define simrxPin 6
-#define simtxPin 5
+#define RX_BUFFER_SIZE 200
 
-SoftwareSerial gpsSerial(GPSrxPin, GPStxPin);
-SoftwareSerial sim800(simrxPin, simtxPin);
+const int gpsBaud = 9600;
+const int simBaud = 9600;
 
-void handlemessages();
-void doGPSstuff();
-void readAndDeleteSMS(int);
+const byte rxPin = 2;
+const byte txPin = 3;
 
-int bound_radius = 0;
+#define SIM_RX 7
+#define SIM_TX 8
 
-typedef struct
-{
-  int32_t lat;
-  int32_t lon;
-} GPSlocation;
+SoftwareSerial sim800(SIM_RX, SIM_TX);
 
-GPSlocation origin_location = {0, 0};
-GPSlocation current_location = {0, 0};
+SoftwareSerial gpsSerial(rxPin, txPin);
 
-volatile bool smsInterrupt = true;
+char GPSdata[RX_BUFFER_SIZE];
+bool receivedGPSdata = false;
+
+GPSLocation currentLocation;
+
+void getGPSdata();
 
 void setup()
 {
-  // enableGPSPowerSaveMode(gpsSerial);
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(9600);
   sim800.begin(9600);
-  gpsSerial.begin(9600);
 
+  Serial.println("System Booting...");
+  simInit();
   simInitWithSleep();
 }
 
