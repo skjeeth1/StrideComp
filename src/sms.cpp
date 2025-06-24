@@ -1,19 +1,25 @@
-bool waitForResponse(String expectedResponse, unsigned long timeout) {
+#include "sms.h"
+
+bool waitForResponse(String expectedResponse, unsigned long timeout)
+{
   String response = "";
   unsigned long startTime = millis();
 
-  while (millis() - startTime < timeout) {
-    if (simSerial.available()) {
-      char c = simSerial.read();
+  while (millis() - startTime < timeout)
+  {
+    if (sim800.available())
+    {
+      char c = sim800.read();
       response += c;
 
-      if (response.indexOf(expectedResponse) >= 0) {
-        Serial.println("Response: " + response.substring(0, response.length()-1)); // Remove last char 
+      if (response.indexOf(expectedResponse) >= 0)
+      {
+        Serial.println("Response: " + response.substring(0, response.length() - 1)); // Remove last char
         return true;
       }
 
-   
-      if (response.indexOf("ERROR") >= 0) {
+      if (response.indexOf("ERROR") >= 0)
+      {
         Serial.println("Error response: " + response);
         return false;
       }
@@ -24,15 +30,20 @@ bool waitForResponse(String expectedResponse, unsigned long timeout) {
   Serial.println("Got: " + response);
   return false;
 }
-void errorBlink(int times) {
-  for (int i = 0; i < times; i++) {
+
+void errorBlink(int times)
+{
+  for (int i = 0; i < times; i++)
+  {
     digitalWrite(LED_PIN, HIGH);
     delay(200);
     digitalWrite(LED_PIN, LOW);
     delay(200);
   }
 }
-void successBlink() {
+
+void successBlink()
+{
   digitalWrite(LED_PIN, HIGH);
   delay(100);
   digitalWrite(LED_PIN, LOW);
@@ -41,56 +52,70 @@ void successBlink() {
   delay(100);
   digitalWrite(LED_PIN, LOW);
 }
-void simInit() {
+
+void simInit()
+{
   Serial.println("Step 1: Testing SIM communication...");
 
-  simSerial.println("AT");
-  if (!waitForResponse("OK", 5000)) {
+  sim800.println("AT");
+  if (!waitForResponse("OK", 5000))
+  {
     Serial.println("ERROR: SIM module not responding!");
     errorBlink(5);
     return;
   }
+
   Serial.println("✓ SIM module responding");
 
   Serial.println("Step 2: Checking SIM card status...");
-  simSerial.println("AT+CPIN?");
-  if (!waitForResponse("READY", 5000)) {
+  sim800.println("AT+CPIN?");
+
+  if (!waitForResponse("READY", 5000))
+  {
     Serial.println("ERROR: SIM card not ready!");
     errorBlink(4);
     return;
   }
+
   Serial.println("✓ SIM card ready");
 
   // Set SMS text mode
   Serial.println("Step 4: Setting SMS text mode...");
-  simSerial.println("AT+CMGF=1");
-  if (!waitForResponse("OK", 3000)) {
+  sim800.println("AT+CMGF=1");
+  if (!waitForResponse("OK", 3000))
+  {
     Serial.println("ERROR: Failed to set SMS text mode!");
     errorBlink(3);
     return;
   }
+
   Serial.println("✓ SMS text mode set");
 
   // Send startup notification
   Serial.println("Step 5: Sending startup notification...");
-  if (!sendSMS(phoneNumber, "Device is Ready!")) {
-    Serial.println("ERROR: Failed to send startup SMS!");
 
-  }
+  // if (!sendSMS("Device is Ready!"))
+  // {
+  //   Serial.println("ERROR: Failed to send startup SMS!");
+  // }
 
   // Configure SMS notifications
   Serial.println("Step 6: Configuring SMS notifications...");
-  simSerial.println("AT+CNMI=1,2,0,0,0");
-  if (!waitForResponse("OK", 3000)) {
+
+  sim800.println("AT+CNMI=1,2,0,0,0");
+  if (!waitForResponse("OK", 3000))
+  {
     Serial.println("WARNING: Failed to set SMS notifications");
     errorBlink(1);
-
-  } else {
+  }
+  else
+  {
     Serial.println("✓ SMS notifications configured");
   }
 
   Serial.println("=== SIM INITIALIZATION COMPLETE ===");
+
   successBlink();
   delay(500);
   successBlink();
-}       
+}

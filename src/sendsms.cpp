@@ -1,15 +1,18 @@
-void sendSMS(const String &msg) {
-  simSerial.println("AT+CMGF=1"); // Set SMS to text mode
+#include "sendsms.h"
+
+void sendSMS(String msg)
+{
+  sim800.println("AT+CMGF=1");
   delay(500);
 
-  simSerial.print("AT+CMGS=\"");
-  simSerial.print(phoneNumber);
-  simSerial.println("\"");
+  sim800.print("AT+CMGS=\"");
+  sim800.print(phoneNumber);
+  sim800.println("\"");
   delay(500);
 
-  simSerial.print(msg);   
+  sim800.print(msg);
   delay(300);
 
-  simSerial.write(26);    
+  sim800.write(26);
   delay(1000);
 }

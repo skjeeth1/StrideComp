@@ -1,64 +1,57 @@
-struct Vec {
-    long x;
-    long y;
-};
+#include "parse.h"
 
-struct Vec current_location = {0, 0};
-struct Vec origin_location = {0, 0};
-int bound_radius = 10 ;
-String authorizedNumber = "+919876543210";
-
-void toUpperCase(char *str) {
-    while (*str) {
-        *str = toupper((unsigned char)*str);
-        str++;
-    }
-}
-
-//set origin func
-void set_origin() {
+// set origin func
+void set_origin()
+{
     origin.x = cur_location.x;
     origin.y = cur_location.y;
 
     Serial.println("ORIGIN SET:");
-    Serial.print("X: "); Serial.println(origin.x);
-    Serial.print("Y: "); Serial.println(origin.y);
+    Serial.print("X: ");
+    Serial.println(origin.x);
+    Serial.print("Y: ");
+    Serial.println(origin.y);
 }
 
-//set distance func
-void set_distance(int distance) {
+// set distance func
+void set_distance(int distance)
+{
     Serial.print("Previous Distance: ");
-    Serial.println(geofence_dist);
+    Serial.println(bound_radius);
 
-    geofence_dist = distance;
+    bound_radius = distance;
 
     Serial.print("New Distance Set To: ");
-    Serial.println(geofence_dist);
+    Serial.println(bound_radius);
 }
 
-// parses the message recieved by sim module 
-void parseMessage(char *message)
-{    
-  
-    if (message.indexOf(authorizedNumber) == -1) {
-      Serial.println(" Unauthorized sender.");
-      return;
+// parses the message recieved by sim module
+void parseMessage(String message)
+{
+    // Check for authorized number
+    if (message.indexOf(authorizedNumber) == -1)
+    {
+        Serial.println(" Unauthorized sender.");
+        return;
     }
-  
-    Serial.println("Authorized sender.");
-  
-    toUpperCase(message);  
 
-    if (strstr(message, "SET ORIGIN") != NULL)
+    Serial.println(" Authorized sender.");
+
+    // Convert to uppercase for case-insensitive comparison
+    message.toUpperCase();
+
+    // Check for "SET ORIGIN"
+    if (message.indexOf("SET ORIGIN") != -1)
     {
         set_origin();
     }
 
-    char *distPtr = strstr(message, "SET DISTANCE ");
-    if (distPtr != NULL)
+    // Check for "SET DISTANCE "
+    int distIndex = message.indexOf("SET DISTANCE ");
+    if (distIndex != -1)
     {
-        distPtr += strlen("SET DISTANCE ");
-        int new_distance = atoi(distPtr);
+        String afterCommand = message.substring(distIndex + strlen("SET DISTANCE "));
+        int new_distance = afterCommand.toInt();
         if (new_distance > 0)
         {
             set_distance(new_distance);
