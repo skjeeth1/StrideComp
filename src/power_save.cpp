@@ -3,9 +3,9 @@
 void enableGPSPowerSaveMode(SoftwareSerial gpsSerial)
 {
     uint8_t setPSM[] = {
-        0xB5, 0x62, 0x06, 0x3B, 0x08, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x4A, 0x77};
+        0xB5, 0x62, 0x02, 0x41, 0x08, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x00, 0x00, 0x4D, 0x3B};
     for (uint8_t i = 0; i < sizeof(setPSM); i++)
     {
         gpsSerial.write(setPSM[i]);
@@ -23,25 +23,27 @@ void simInitWithSleep()
     attachInterrupt(digitalPinToInterrupt(2), wakeISR, FALLING);
 
     pinMode(SIM_DTR, OUTPUT);
-    digitalWrite(SIM_DTR, LOW); // Allow sleep
+    digitalWrite(SIM_DTR, HIGH); // Allow sleep
 
-    Serial.println("AT+CSCLK=1");
+    sleepSIM800();
 }
 
 void wakeSIM800()
 {
-    digitalWrite(SIM_DTR, HIGH);
+    digitalWrite(SIM_DTR, LOW);
     delay(1000);
 }
 
 void sleepSIM800()
 {
-    digitalWrite(SIM_DTR, LOW);
+    Serial.println("AT+CSCLK=1");
+    Serial.flush();
+    digitalWrite(SIM_DTR, HIGH);
 }
 
 void nanoSleep()
 {
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 10; i++)
     {
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
     }
