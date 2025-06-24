@@ -1,33 +1,41 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#include "gps_parser.h"
 
 #include "globals.h"
 #include "parse.h"
 #include "sendsms.h"
 #include "sms.h"
+#include "power_save.h"
 
 #define RX_BUFFER_SIZE 200
 
 const int gpsBaud = 9600;
 const int simBaud = 9600;
 
-const byte rxPin = 2;
-const byte txPin = 3;
+#define GPS_RX 2
+#define GPS_TX 3
 
 #define SIM_RX 7
 #define SIM_TX 8
 
 SoftwareSerial sim800(SIM_RX, SIM_TX);
-
-SoftwareSerial gpsSerial(rxPin, txPin);
+SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 
 char GPSdata[RX_BUFFER_SIZE];
 bool receivedGPSdata = false;
 
-GPSLocation currentLocation;
+vec cur_location = {0, 0};
+vec origin = {0, 0};
+int bound_radius = 100;
+
+String authorizedNumber = "+919876543210";
+String phoneNumber = "+919876543210";
+
+volatile bool smsInterrupt = false;
 
 void getGPSdata();
+void handlemessages();
+void readAndDeleteSMS(int);
 
 void setup()
 {
@@ -134,6 +142,8 @@ void readAndDeleteSMS(int index)
       break;                      // one message only
     }
   }
+
+  parseMessage(uartMessage);
 
   Serial.println("------- SMS -------");
   Serial.print(uartMessage);
