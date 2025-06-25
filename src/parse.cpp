@@ -3,14 +3,14 @@
 // set origin func
 void set_origin()
 {
-    origin.x = cur_location.x;
-    origin.y = cur_location.y;
+    originLocation.x = currentLocation.x;
+    originLocation.y = currentLocation.y;
 
     Serial.println("ORIGIN SET:");
     Serial.print("X: ");
-    Serial.println(origin.x);
+    Serial.println(originLocation.x);
     Serial.print("Y: ");
-    Serial.println(origin.y);
+    Serial.println(originLocation.y);
 }
 
 // set distance func

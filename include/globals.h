@@ -10,8 +10,8 @@ typedef struct
     long y;
 } vec;
 
-extern vec cur_location;
-extern vec origin;
+extern vec currentLocation;
+extern vec originLocation;
 extern int bound_radius;
 
 extern String authorizedNumber;

@@ -1,7 +1,6 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-sendSMS(generateGoogleMapsLink(currentLat, currentLng));
 #include "globals.h"
 #include "parse.h"
 #include "sendsms.h"
@@ -10,14 +9,14 @@ sendSMS(generateGoogleMapsLink(currentLat, currentLng));
 
 #define RX_BUFFER_SIZE 200
 
-const int gpsBaud = 9600;
-const int simBaud = 9600;
-
 #define GPS_RX 2
 #define GPS_TX 3
 
 #define SIM_RX 7
 #define SIM_TX 8
+
+const int gpsBaud = 9600;
+const int simBaud = 9600;
 
 SoftwareSerial sim800(SIM_RX, SIM_TX);
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
@@ -26,14 +25,14 @@ TinyGPSPlus gps;
 char GPSdata[RX_BUFFER_SIZE];
 bool receivedGPSdata = false;
 
-vec current_location = {0, 0};
-vec origin_location = {0, 0};
+vec currentLocation = {0, 0};
+vec originLocation = {0, 0};
 int bound_radius = 100;
 
 String authorizedNumber = "+919876543210";
 String phoneNumber = "+919876543210";
-  
-  bool validDataReceived = false;
+
+bool validDataReceived = false;
 unsigned long lastValidData = 0;
 const unsigned long GPS_TIMEOUT = 10000;
 
@@ -42,6 +41,11 @@ volatile bool smsInterrupt = false;
 void getGPSdata();
 void handlemessages();
 void readAndDeleteSMS(int);
+
+void checkGPS();
+double calculateDistance(double lat1, double lon1, double lat2, double lon2);
+String generateGoogleMapsLink(double lat, double lng);
+void checkGeofence(double currentLat, double currentLng);
 
 void setup()
 {
@@ -67,9 +71,9 @@ void loop()
   }
   else
   {
-    // doGPSstuff();
+    checkGPS();
     // enableGPSPowerSaveMode(gpsSerial);
-    nanoSleep();
+    // nanoSleep();
   }
   delay(1000);
 }
@@ -159,9 +163,8 @@ void readAndDeleteSMS(int index)
   delay(300);
 }
 
-
-
-double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+double calculateDistance(double lat1, double lon1, double lat2, double lon2)
+{
   // Approx 1 degree latitude ~ 111,320 meters
   // Approx 1 degree longitude ~ 111,320 * cos(latitude)
   const double LAT_TO_M = 111320.0;
@@ -174,8 +177,8 @@ double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   return sqrt(deltaLat * deltaLat + deltaLon * deltaLon);
 }
 
-
-String generateGoogleMapsLink(double lat, double lng) {
+String generateGoogleMapsLink(double lat, double lng)
+{
   String link = "https://maps.google.com/maps?q=";
   link += String(lat, 6);
   link += ",";
@@ -184,45 +187,56 @@ String generateGoogleMapsLink(double lat, double lng) {
   return link;
 }
 
-void checkGeofence(double currentLat, double currentLng) {
-  double distance = calculateDistance(ORIGIN_LAT, ORIGIN_LNG, currentLat, currentLng);
-  
+void checkGeofence(double currentLat, double currentLng)
+{
+  double distance = calculateDistance(originLocation.x, originLocation.y, currentLocation.x, currentLocation.y);
+
   Serial.print("Distance from origin: ");
   Serial.print(distance, 2);
   Serial.println(" meters");
-  
-  if (distance <= RADIUS_METERS) {
+
+  if (distance <= bound_radius)
+  {
     Serial.println("✓ PERSON IS INSIDE THE GEOFENCE");
-  } else {
+  }
+  else
+  {
     Serial.println("✗ PERSON IS OUTSIDE THE GEOFENCE");
     Serial.print("Distance exceeded by: ");
-    Serial.print(distance - RADIUS_METERS, 2);
+    Serial.print(distance - bound_radius, 2);
     Serial.println(" meters");
+
+    sendSMS(generateGoogleMapsLink(currentLocation.x, currentLocation.y));
+
+    Serial.flush();
   }
 }
 
-void check_gps() {
+void checkGPS()
+{
   validDataReceived = false; // Reset flag at start of each loop
-  
-  while (gpsSerial.available()) {
-    if (gps.encode(gpsSerial.read())) {
-      if (gps.location.isValid() && gps.date.isValid() && gps.time.isValid()) {
+
+  while (gpsSerial.available())
+  {
+    if (gps.encode(gpsSerial.read()))
+    {
+      if (gps.location.isValid() && gps.date.isValid() && gps.time.isValid())
+      {
         validDataReceived = true;
         lastValidData = millis();
-        
-        double currentLat = gps.location.lat();
-        double currentLng = gps.location.lng();
-        
+
+        currentLocation.x = gps.location.lat();
+        currentLocation.y = gps.location.lng();
+
         Serial.println("\n=== VALID GPS DATA ===");
         Serial.print("Latitude: ");
-        Serial.println(currentLat, 6);
+        Serial.println(currentLocation.x, 6);
         Serial.print("Longitude: ");
-        Serial.println(currentLng, 6);
-        
-        
-        
+        Serial.println(currentLocation.y, 6);
+
         // Date and Time
-        if ( gps.time.isValid()) {
+        if (gps.time.isValid())
+        {
           Serial.print("Time: ");
           Serial.print(gps.time.hour());
           Serial.print(":");
@@ -230,30 +244,34 @@ void check_gps() {
           Serial.print(":");
           Serial.println(gps.time.second());
         }
-        
+
         // Geofence check
-        Serial.println("\n=== GEOFENCE CHECK ===");
-        checkGeofence(currentLat, currentLng);
-        
-        // Google Maps link
-        Serial.println("\n=== GOOGLE MAPS LINK ===");
-        Serial.println(generateGoogleMapsLink(currentLat, currentLng));
-        
-        Serial.println("======================");
-        
-      } else {
+        // Serial.println("\n=== GEOFENCE CHECK ===");
+        checkGeofence(currentLocation.x, currentLocation.y);
+
+        // // Google Maps link
+        // Serial.println("\n=== GOOGLE MAPS LINK ===");
+        // Serial.println(generateGoogleMapsLink(currentLocation.x, currentLng));
+
+        // Serial.println("======================");
+      }
+      else
+      {
         validDataReceived = false;
         Serial.println("GPS data received but invalid/incomplete");
       }
     }
   }
   // Handle invalid data flag
-  if (!validDataReceived) {
+  if (!validDataReceived)
+  {
     // Check if we haven't received valid data for too long
-    if (millis() - lastValidData > GPS_TIMEOUT && lastValidData != 0) {
+    if (millis() - lastValidData > GPS_TIMEOUT && lastValidData != 0)
+    {
       Serial.println("WARNING: No valid GPS data for extended period!");
     }
-  
-  delay(2000); // 2 second delay between readings
-}
 
+    Serial.flush();
+    delay(2000); // 2 second delay between readings
+  }
+}
