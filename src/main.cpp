@@ -1,34 +1,165 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-TinyGPSPlus gps;
-SoftwareSerial gpsSerial(4, 3); // GPS TX - D4 (RX), GPS RX - D3 (TX)
+sendSMS(generateGoogleMapsLink(currentLat, currentLng));
+#include "globals.h"
+#include "parse.h"
+#include "sendsms.h"
+#include "sms.h"
+#include "power_save.h"
 
-// Flag variable
-bool validDataReceived = false;
+#define RX_BUFFER_SIZE 200
+
+const int gpsBaud = 9600;
+const int simBaud = 9600;
+
+#define GPS_RX 2
+#define GPS_TX 3
+
+#define SIM_RX 7
+#define SIM_TX 8
+
+SoftwareSerial sim800(SIM_RX, SIM_TX);
+SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
+TinyGPSPlus gps;
+
+char GPSdata[RX_BUFFER_SIZE];
+bool receivedGPSdata = false;
+
+vec current_location = {0, 0};
+vec origin_location = {0, 0};
+int bound_radius = 100;
+
+String authorizedNumber = "+919876543210";
+String phoneNumber = "+919876543210";
+  
+  bool validDataReceived = false;
 unsigned long lastValidData = 0;
 const unsigned long GPS_TIMEOUT = 10000;
 
-// Geofencing parameters 
-const double ORIGIN_LAT = 8.5241;     // Thiruvananthapuram latitude
-const double ORIGIN_LNG = 76.9366;    // Thiruvananthapuram longitude  
-const double RADIUS_METERS = 1000.0;  // 1km radius
+volatile bool smsInterrupt = false;
 
-void setup() {
+void getGPSdata();
+void handlemessages();
+void readAndDeleteSMS(int);
+
+void setup()
+{
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(9600);
-  gpsSerial.begin(9600);
-  Serial.println("TinyGPS++ with Geofencing Started");
-  
-  Serial.println("=== GEOFENCE SETTINGS ===");
-  Serial.print("Origin: ");
-  Serial.print(ORIGIN_LAT, 6);
-  Serial.print(", ");
-  Serial.println(ORIGIN_LNG, 6);
-  Serial.print("Radius: ");
-  Serial.print(RADIUS_METERS);
-  Serial.println(" meters");
-  Serial.println("========================");
+  sim800.begin(9600);
+
+  Serial.println("System Booting...");
+  simInit();
+  simInitWithSleep();
 }
+
+void loop()
+{
+  if (smsInterrupt)
+  {
+    // smsInterrupt = false;
+
+    wakeSIM800();
+    handlemessages();
+
+    sleepSIM800();
+  }
+  else
+  {
+    // doGPSstuff();
+    // enableGPSPowerSaveMode(gpsSerial);
+    nanoSleep();
+  }
+  delay(1000);
+}
+
+void handlemessages()
+{
+  while (true)
+  {
+    int indexes[10];
+    int count = 0;
+
+    sim800.println("AT+CMGL=\"REC UNREAD\"");
+    delay(1000);
+
+    while (sim800.available())
+    {
+      String line = sim800.readStringUntil('\n');
+      line.trim();
+
+      if (line.startsWith("+CMGL:"))
+      {
+        int colon = line.indexOf(':');
+        int comma = line.indexOf(',', colon + 1);
+        String idx = line.substring(colon + 1, comma);
+        indexes[count++] = idx.toInt();
+        if (count >= 10)
+          break;
+      }
+    }
+
+    if (count == 0)
+    {
+      Serial.println("No unread messages. Going back to sleep.");
+      break;
+    }
+
+    Serial.print("Processing ");
+    Serial.print(count);
+    Serial.println(" message(s)");
+
+    for (int i = 0; i < count; i++)
+    {
+      readAndDeleteSMS(indexes[i]);
+    }
+
+    // Wait in case a new message arrived during processing
+    delay(1000);
+
+    sim800.flush();
+    Serial.flush();
+  }
+}
+
+void readAndDeleteSMS(int index)
+{
+  sim800.print("AT+CMGR=");
+  sim800.println(index);
+  delay(500);
+
+  String uartMessage = "";
+  bool gotHeader = false;
+
+  while (sim800.available())
+  {
+    String line = sim800.readStringUntil('\n');
+    line.trim();
+
+    if (line.startsWith("+CMGR:") && !gotHeader)
+    {
+      uartMessage = line + "\n"; // header line
+      gotHeader = true;
+    }
+    else if (gotHeader && line.length() > 0)
+    {
+      uartMessage += line + "\n"; // body line
+      break;                      // one message only
+    }
+  }
+
+  parseMessage(uartMessage);
+
+  Serial.println("------- SMS -------");
+  Serial.print(uartMessage);
+
+  sim800.print("AT+CMGD=");
+  sim800.println(index);
+  delay(300);
+}
+
+
 
 double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   // Approx 1 degree latitude ~ 111,320 meters
@@ -70,7 +201,7 @@ void checkGeofence(double currentLat, double currentLng) {
   }
 }
 
-void loop() {
+void check_gps() {
   validDataReceived = false; // Reset flag at start of each loop
   
   while (gpsSerial.available()) {
@@ -125,5 +256,4 @@ void loop() {
   
   delay(2000); // 2 second delay between readings
 }
-#include "sendsms.h"
-sendSMS(generateGoogleMapsLink(currentLat, currentLng));
+
