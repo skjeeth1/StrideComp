@@ -6,13 +6,13 @@
 
 typedef struct
 {
-    long x;
-    long y;
+    float x;
+    float y;
 } vec;
 
 extern vec currentLocation;
 extern vec originLocation;
-extern int bound_radius;
+extern float bound_radius;
 
 extern String authorizedNumber;
 extern String phoneNumber;

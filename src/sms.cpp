@@ -1,8 +1,9 @@
 #include "sms.h"
 
-bool waitForResponse(String expectedResponse, unsigned long timeout)
+bool waitForResponse(const char *expectedResponse, unsigned long timeout)
 {
-  String response = "";
+  char response[128];
+  size_t len = 0;
   unsigned long startTime = millis();
 
   while (millis() - startTime < timeout)
@@ -10,24 +11,31 @@ bool waitForResponse(String expectedResponse, unsigned long timeout)
     if (sim800.available())
     {
       char c = sim800.read();
-      response += c;
+      if (c == '\r' || c == '\n')
+        continue;
+      response[len++] = c;
+      response[len] = '\0';
 
-      if (response.indexOf(expectedResponse) >= 0)
+      if (strstr(response, expectedResponse))
       {
-        Serial.println("Response: " + response.substring(0, response.length() - 1)); // Remove last char
+        Serial.print("Response: ");
+        Serial.println(response);
         return true;
       }
 
-      if (response.indexOf("ERROR") >= 0)
+      if (strstr(response, "ERROR"))
       {
-        Serial.println("Error response: " + response);
+        Serial.print("Error response: ");
+        Serial.println(response);
         return false;
       }
     }
   }
 
-  Serial.println("Timeout waiting for: " + expectedResponse);
-  Serial.println("Got: " + response);
+  Serial.print("Timeout waiting for: ");
+  Serial.println(expectedResponse);
+  Serial.print("Got: ");
+  Serial.println(response);
   return false;
 }
 
@@ -102,16 +110,16 @@ void simInit()
   // Configure SMS notifications
   Serial.println("Step 6: Configuring SMS notifications...");
 
-  sim800.println("AT+CNMI=1,2,0,0,0");
-  if (!waitForResponse("OK", 3000))
-  {
-    Serial.println("WARNING: Failed to set SMS notifications");
-    errorBlink(1);
-  }
-  else
-  {
-    Serial.println("✓ SMS notifications configured");
-  }
+  // sim800.println("AT+CNMI=1,2,0,0,0");
+  // if (!waitForResponse("OK", 3000))
+  // {
+  //   Serial.println("WARNING: Failed to set SMS notifications");
+  //   errorBlink(1);
+  // }
+  // else
+  // {
+  //   Serial.println("✓ SMS notifications configured");
+  // }
 
   Serial.println("=== SIM INITIALIZATION COMPLETE ===");
 

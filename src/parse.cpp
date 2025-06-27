@@ -29,13 +29,13 @@ void set_distance(int distance)
 void parseMessage(String message)
 {
     // Check for authorized number
-    if (message.indexOf(authorizedNumber) == -1)
-    {
-        Serial.println(" Unauthorized sender.");
-        return;
-    }
+    // if (message.indexOf(authorizedNumber) == -1)
+    // {
+    //     Serial.println(" Unauthorized sender.");
+    //     return;
+    // }
 
-    Serial.println(" Authorized sender.");
+    // Serial.println(" Authorized sender.");
 
     // Convert to uppercase for case-insensitive comparison
     message.toUpperCase();
